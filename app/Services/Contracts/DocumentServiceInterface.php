@@ -15,4 +15,6 @@ interface DocumentServiceInterface
     public function update(int $documentId, int $userId, array $data): array;
 
     public function import(int $userId, UploadedFile $file): array;
+
+    public function delete(int $documentId, int $userId): void;
 }

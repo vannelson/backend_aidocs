@@ -103,6 +103,18 @@ class DocumentService implements DocumentServiceInterface
         ]);
     }
 
+    public function delete(int $documentId, int $userId): void
+    {
+        $document = $this->documentRepository->findById($documentId);
+
+        if ($document->owner_id !== $userId) {
+            throw new AuthorizationException('Only the document owner can delete this document.');
+        }
+
+        $document->shares()->delete();
+        $this->documentRepository->delete($documentId);
+    }
+
     protected function resourceArray(Collection $documents): array
     {
         return $documents

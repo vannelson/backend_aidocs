@@ -132,4 +132,33 @@ class DocumentPermissionTest extends TestCase
             'role' => 'editor',
         ]);
     }
+
+    public function test_only_owner_can_delete_document(): void
+    {
+        $owner = User::factory()->create();
+        $editor = User::factory()->create();
+
+        $document = Document::create([
+            'owner_id' => $owner->id,
+            'title' => 'Delete me',
+            'content' => '<p>Draft</p>',
+        ]);
+
+        DocumentShare::create([
+            'document_id' => $document->id,
+            'user_id' => $editor->id,
+            'role' => 'editor',
+        ]);
+
+        Sanctum::actingAs($editor);
+        $this->deleteJson("/api/v1/documents/{$document->id}")
+            ->assertForbidden();
+
+        Sanctum::actingAs($owner);
+        $this->deleteJson("/api/v1/documents/{$document->id}")
+            ->assertOk();
+
+        $this->assertDatabaseMissing('documents', ['id' => $document->id]);
+        $this->assertDatabaseMissing('document_shares', ['document_id' => $document->id]);
+    }
 }

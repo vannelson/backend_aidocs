@@ -96,4 +96,19 @@ class DocumentController extends Controller
             return $this->error('Failed to import document.', 500);
         }
     }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        try {
+            $this->documentService->delete($id, $request->user()->id);
+
+            return $this->success('Document deleted successfully!');
+        } catch (AuthorizationException $exception) {
+            return $this->error($exception->getMessage(), 403);
+        } catch (ModelNotFoundException $exception) {
+            return $this->error('Document not found.', 404);
+        } catch (Throwable $exception) {
+            return $this->error('Failed to delete document.', 500);
+        }
+    }
 }
