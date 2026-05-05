@@ -21,8 +21,10 @@ Route::prefix('v1')->group(function () {
         Route::post('documents/import', [DocumentController::class, 'import']);
         Route::get('documents/{id}', [DocumentController::class, 'show'])->whereNumber('id');
         Route::put('documents/{id}', [DocumentController::class, 'update'])->whereNumber('id');
-        Route::get('documents/{id}/export/pdf', [DocumentController::class, 'exportPdf'])->whereNumber('id');
-        Route::get('documents/{id}/export/word', [DocumentController::class, 'exportWord'])->whereNumber('id');
+        Route::get('documents/{id}/share', [ShareController::class, 'index'])->whereNumber('id');
         Route::post('documents/{id}/share', [ShareController::class, 'store'])->whereNumber('id');
+        Route::put('documents/{id}/share/{shareId}', [ShareController::class, 'update'])
+            ->whereNumber('id')
+            ->whereNumber('shareId');
     });
 });

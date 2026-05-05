@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\DocumentShare;
 use App\Repositories\Contracts\DocumentShareRepositoryInterface;
+use Illuminate\Support\Collection;
 
 class DocumentShareRepository extends BaseRepository implements DocumentShareRepositoryInterface
 {
@@ -31,6 +32,26 @@ class DocumentShareRepository extends BaseRepository implements DocumentShareRep
             ->newQuery()
             ->where('document_id', $documentId)
             ->where('user_id', $userId)
+            ->first();
+    }
+
+    public function getByDocumentId(int $documentId): Collection
+    {
+        return $this->model
+            ->newQuery()
+            ->with('user')
+            ->where('document_id', $documentId)
+            ->latest('updated_at')
+            ->get();
+    }
+
+    public function findByIdAndDocument(int $shareId, int $documentId): ?DocumentShare
+    {
+        return $this->model
+            ->newQuery()
+            ->with('user')
+            ->where('id', $shareId)
+            ->where('document_id', $documentId)
             ->first();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Http\Resources\Document\DocumentShareResource;
+use App\Models\DocumentShare;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use App\Repositories\Contracts\DocumentShareRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
@@ -22,11 +23,7 @@ class ShareService implements ShareServiceInterface
 
     public function share(int $documentId, int $ownerId, array $data): array
     {
-        $document = $this->documentRepository->findById($documentId);
-
-        if ($document->owner_id !== $ownerId) {
-            throw new AuthorizationException('Only the document owner can share this document.');
-        }
+        $this->authorizeOwner($documentId, $ownerId);
 
         $shares = collect($data['user_ids'])
             ->map(function (int $userId) use ($documentId, $ownerId, $data) {
@@ -49,5 +46,42 @@ class ShareService implements ShareServiceInterface
                 ->values()
                 ->all(),
         ];
+    }
+
+    public function getShares(int $documentId, int $ownerId): array
+    {
+        $this->authorizeOwner($documentId, $ownerId);
+
+        return $this->documentShareRepository
+            ->getByDocumentId($documentId)
+            ->map(fn (DocumentShare $share) => (new DocumentShareResource($share))->resolve())
+            ->values()
+            ->all();
+    }
+
+    public function updateShare(int $documentId, int $shareId, int $ownerId, array $data): array
+    {
+        $this->authorizeOwner($documentId, $ownerId);
+
+        $share = $this->documentShareRepository->findByIdAndDocument($shareId, $documentId);
+
+        if (!$share) {
+            throw new ModelNotFoundException('Document share not found.');
+        }
+
+        $updatedShare = $this->documentShareRepository
+            ->updateAndGet($share->id, ['role' => $data['role']])
+            ->load('user');
+
+        return (new DocumentShareResource($updatedShare))->resolve();
+    }
+
+    protected function authorizeOwner(int $documentId, int $ownerId): void
+    {
+        $document = $this->documentRepository->findById($documentId);
+
+        if ($document->owner_id !== $ownerId) {
+            throw new AuthorizationException('Only the document owner can manage sharing for this document.');
+        }
     }
 }

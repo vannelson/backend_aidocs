@@ -96,30 +96,40 @@ class DocumentPermissionTest extends TestCase
         ]);
     }
 
-    public function test_accessible_user_can_export_document_as_pdf_and_word(): void
+    public function test_owner_can_view_and_update_existing_document_shares(): void
     {
         $owner = User::factory()->create();
-        $outsider = User::factory()->create();
+        $editor = User::factory()->create();
 
         $document = Document::create([
             'owner_id' => $owner->id,
-            'title' => 'Quarterly Review',
-            'content' => '<h2>Summary</h2><p>Strong progress.</p>',
+            'title' => 'Team Plan',
+            'content' => '<p>Draft</p>',
+        ]);
+
+        $share = DocumentShare::create([
+            'document_id' => $document->id,
+            'user_id' => $editor->id,
+            'role' => 'viewer',
         ]);
 
         Sanctum::actingAs($owner);
 
-        $this->get("/api/v1/documents/{$document->id}/export/pdf")
+        $this->getJson("/api/v1/documents/{$document->id}/share")
             ->assertOk()
-            ->assertHeader('content-type', 'application/pdf');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user.email', $editor->email)
+            ->assertJsonPath('data.0.role', 'viewer');
 
-        $this->get("/api/v1/documents/{$document->id}/export/word")
+        $this->putJson("/api/v1/documents/{$document->id}/share/{$share->id}", [
+            'role' => 'editor',
+        ])
             ->assertOk()
-            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            ->assertJsonPath('data.role', 'editor');
 
-        Sanctum::actingAs($outsider);
-
-        $this->get("/api/v1/documents/{$document->id}/export/pdf")
-            ->assertNotFound();
+        $this->assertDatabaseHas('document_shares', [
+            'id' => $share->id,
+            'role' => 'editor',
+        ]);
     }
 }
