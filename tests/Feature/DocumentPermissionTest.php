@@ -95,4 +95,31 @@ class DocumentPermissionTest extends TestCase
             'role' => 'editor',
         ]);
     }
+
+    public function test_accessible_user_can_export_document_as_pdf_and_word(): void
+    {
+        $owner = User::factory()->create();
+        $outsider = User::factory()->create();
+
+        $document = Document::create([
+            'owner_id' => $owner->id,
+            'title' => 'Quarterly Review',
+            'content' => '<h2>Summary</h2><p>Strong progress.</p>',
+        ]);
+
+        Sanctum::actingAs($owner);
+
+        $this->get("/api/v1/documents/{$document->id}/export/pdf")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->get("/api/v1/documents/{$document->id}/export/word")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+        Sanctum::actingAs($outsider);
+
+        $this->get("/api/v1/documents/{$document->id}/export/pdf")
+            ->assertNotFound();
+    }
 }

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class DocumentController extends Controller
@@ -94,6 +95,28 @@ class DocumentController extends Controller
             return $this->validationError($exception);
         } catch (Throwable $exception) {
             return $this->error('Failed to import document.', 500);
+        }
+    }
+
+    public function exportPdf(Request $request, int $id): StreamedResponse|JsonResponse
+    {
+        try {
+            return $this->documentService->exportPdf($id, $request->user()->id);
+        } catch (ModelNotFoundException $exception) {
+            return $this->error('Document not found.', 404);
+        } catch (Throwable $exception) {
+            return $this->error('Failed to export document as PDF.', 500);
+        }
+    }
+
+    public function exportWord(Request $request, int $id): StreamedResponse|JsonResponse
+    {
+        try {
+            return $this->documentService->exportWord($id, $request->user()->id);
+        } catch (ModelNotFoundException $exception) {
+            return $this->error('Document not found.', 404);
+        } catch (Throwable $exception) {
+            return $this->error('Failed to export document as Word.', 500);
         }
     }
 }

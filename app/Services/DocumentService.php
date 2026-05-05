@@ -7,11 +7,16 @@ use App\Models\Document;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use App\Repositories\Contracts\DocumentShareRepositoryInterface;
 use App\Services\Contracts\DocumentServiceInterface;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Shared\Html;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentService implements DocumentServiceInterface
 {
@@ -103,6 +108,71 @@ class DocumentService implements DocumentServiceInterface
         ]);
     }
 
+    public function exportPdf(int $documentId, int $userId): StreamedResponse
+    {
+        $document = $this->findAccessibleDocument($documentId, $userId);
+
+        $pdf = Pdf::loadView('exports.document-pdf', [
+            'document' => $document,
+            'ownerName' => $document->owner?->name,
+        ])->setPaper('a4');
+
+        return response()->streamDownload(
+            function () use ($pdf) {
+                echo $pdf->output();
+            },
+            $this->buildExportFilename($document->title, 'pdf'),
+            ['Content-Type' => 'application/pdf']
+        );
+    }
+
+    public function exportWord(int $documentId, int $userId): StreamedResponse
+    {
+        $document = $this->findAccessibleDocument($documentId, $userId);
+
+        $phpWord = new PhpWord();
+        $phpWord->setDefaultFontName('Arial');
+        $phpWord->setDefaultFontSize(11);
+
+        $section = $phpWord->addSection([
+            'marginTop' => 900,
+            'marginBottom' => 900,
+            'marginLeft' => 900,
+            'marginRight' => 900,
+        ]);
+
+        $section->addTitle($document->title ?: 'Untitled document', 1);
+
+        if ($document->owner?->name) {
+            $section->addText("Owner: {$document->owner->name}", ['color' => '6B7280', 'size' => 10]);
+        }
+
+        $section->addTextBreak(1);
+
+        Html::addHtml($section, $this->buildWordHtml($document), false, false);
+
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'gooddocs-word-');
+        $writer = IOFactory::createWriter($phpWord, 'Word2007');
+        $writer->save($temporaryFile);
+
+        return response()->streamDownload(
+            function () use ($temporaryFile) {
+                $stream = fopen($temporaryFile, 'rb');
+
+                if ($stream !== false) {
+                    fpassthru($stream);
+                    fclose($stream);
+                }
+
+                @unlink($temporaryFile);
+            },
+            $this->buildExportFilename($document->title, 'docx'),
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ]
+        );
+    }
+
     protected function resourceArray(Collection $documents): array
     {
         return $documents
@@ -142,5 +212,31 @@ class DocumentService implements DocumentServiceInterface
         $escaped = e($contents);
 
         return '<p>' . str_replace(PHP_EOL, '</p><p>', nl2br($escaped, false)) . '</p>';
+    }
+
+    protected function findAccessibleDocument(int $documentId, int $userId): Document
+    {
+        $document = $this->documentRepository->findAccessibleById($documentId, $userId);
+
+        if (!$document) {
+            throw new ModelNotFoundException('Document not found.');
+        }
+
+        return $document;
+    }
+
+    protected function buildExportFilename(string $title, string $extension): string
+    {
+        $safeTitle = Str::slug($title ?: 'untitled-document');
+
+        return ($safeTitle ?: 'untitled-document') . '.' . $extension;
+    }
+
+    protected function buildWordHtml(Document $document): string
+    {
+        return sprintf(
+            '<html><body>%s</body></html>',
+            $document->content ?: '<p></p>'
+        );
     }
 }
