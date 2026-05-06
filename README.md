@@ -1,66 +1,150 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GoodDocs Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel API for the GoodDocs assignment.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12
+- Sanctum token authentication
+- MySQL database: `gooddocs`
+- Controller / Service / Repository / Interface structure
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features Implemented
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Login, register, logout, and current-user endpoint
+- Create, open, rename, edit, and delete documents
+- Rich-text content persistence as HTML
+- Import `.txt` and `.md` files into new editable documents
+- Share documents with seeded or registered users
+- Owner-managed sharing with `viewer` and `editor` roles
+- List current shares and update collaborator roles
 
-## Learning Laravel
+## Supported File Types
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+File import is intentionally limited to:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- `.txt`
+- `.md`
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+`.docx` is not supported in this build.
 
-## Laravel Sponsors
+## Demo Accounts
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Seeded users:
 
-### Premium Partners
+- `ava@gooddocs.test` / `password123`
+- `ben@gooddocs.test` / `password123`
+- `cara@gooddocs.test` / `password123`
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## API Base URL
 
-## Contributing
+Local API base:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```txt
+http://127.0.0.1:8000/api/v1
+```
 
-## Code of Conduct
+## Setup
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. Open a terminal in `backend_aidocs`.
+2. Install dependencies:
 
-## Security Vulnerabilities
+```powershell
+composer install
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+3. If `.env` does not exist, create it:
 
-## License
+```powershell
+copy .env.example .env
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+4. Confirm database settings in `.env`.
+   Required database name:
+
+```env
+DB_DATABASE=gooddocs
+```
+
+5. Generate the Laravel app key:
+
+```powershell
+php artisan key:generate
+```
+
+6. Run migrations and seed demo users:
+
+```powershell
+php artisan migrate --seed
+```
+
+7. Start the backend server:
+
+```powershell
+php artisan serve
+```
+
+The API will run on:
+
+```txt
+http://127.0.0.1:8000
+```
+
+## Useful Commands
+
+Run tests:
+
+```powershell
+php artisan test
+```
+
+Reseed demo users:
+
+```powershell
+php artisan db:seed
+```
+
+Reset backend tables and reseed:
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
+Use `migrate:fresh` only if you want to wipe existing backend data.
+
+## Main Endpoints
+
+Auth:
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+
+Documents:
+
+- `GET /api/v1/documents`
+- `POST /api/v1/documents`
+- `GET /api/v1/documents/{id}`
+- `PUT /api/v1/documents/{id}`
+- `DELETE /api/v1/documents/{id}`
+- `POST /api/v1/documents/import`
+
+Sharing:
+
+- `GET /api/v1/users/shareable`
+- `GET /api/v1/documents/{id}/share`
+- `POST /api/v1/documents/{id}/share`
+- `PUT /api/v1/documents/{id}/share/{shareId}`
+
+## Sharing Rules
+
+- Owner can read, edit, delete, and share the document.
+- Editor can read and edit the document.
+- Viewer can read the document only.
+- Only the owner can manage shared access.
+
+## Notes
+
+- The backend expects the frontend to authenticate with Sanctum bearer tokens.
+- Shared and owned documents are returned separately so the frontend can render clear sections.
